@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Zap, Eye, EyeOff, Loader2 } from "lucide-react";
+import Image from "next/image";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function LoginPage() {
@@ -59,11 +60,15 @@ export default function LoginPage() {
         <CardHeader className="text-center pb-2 pt-8">
           {/* Logo */}
           <div className="flex justify-center mb-4">
-            <div className="relative">
-              <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/25">
-                <Zap className="w-8 h-8" />
-              </div>
-              <div className="absolute -inset-1 bg-primary/20 rounded-2xl blur-lg -z-10" />
+            <div className="relative flex items-center justify-center">
+              <Image
+                src="/app-logo.png"
+                alt="IT Inventory Logo"
+                width={120}
+                height={80}
+                priority
+                className="h-16 w-auto object-contain drop-shadow-md"
+              />
             </div>
           </div>
 

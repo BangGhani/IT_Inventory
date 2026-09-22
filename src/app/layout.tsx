@@ -12,6 +12,9 @@ export const metadata: Metadata = {
   title: "IT Inventory — Bank Jatim",
   description:
     "Aplikasi inventaris dan manajemen IT untuk IT Support Bank Jatim",
+  icons: {
+    icon: "/app-logo.png",
+  },
 };
 
 export default function RootLayout({

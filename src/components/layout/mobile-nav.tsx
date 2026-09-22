@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { navItems } from "@/lib/nav-items";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { Menu, Zap } from "lucide-react";
+import Image from "next/image";
+import { Menu } from "lucide-react";
 import { useState } from "react";
 
 export function MobileNav() {
@@ -58,8 +59,15 @@ export function MobileNav() {
               <SheetTitle className="sr-only">Menu Navigasi</SheetTitle>
               {/* Sheet header */}
               <div className="flex items-center gap-3 px-5 h-16 border-b border-border">
-                <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary text-primary-foreground">
-                  <Zap className="w-5 h-5" />
+                <div className="flex items-center justify-center w-9 h-9 shrink-0">
+                  <Image
+                    src="/app-logo.png"
+                    alt="IT Inventory Logo"
+                    width={36}
+                    height={24}
+                    priority
+                    className="w-auto h-8 object-contain"
+                  />
                 </div>
                 <div className="flex flex-col">
                   <span className="text-sm font-bold">IT Inventory</span>
