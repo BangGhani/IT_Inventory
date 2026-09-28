@@ -324,3 +324,157 @@ export function downloadTemplate(options: {
     URL.revokeObjectURL(url);
   }
 }
+
+/**
+ * Export lembur data to Excel matching the reference Lemburan.xlsx format.
+ * Produces the official "PERINTAH LEMBUR CABANG KEPANJEN" sheet layout.
+ */
+export interface LemburExportRow {
+  nip: string;
+  nama: string | null;
+  jabatan: string | null;
+  tanggal: string;
+  waktu_mulai: string;
+  waktu_selesai: string;
+  keterangan: string | null;
+  estimasi_biaya: number | null;
+}
+
+export function exportLemburToExcel(options: {
+  data: LemburExportRow[];
+  bulan: number; // 1-12
+  tahun: number;
+  pemimpinCabang?: string;
+  penyelia?: string;
+}) {
+  const { data, bulan, tahun } = options;
+
+  const bulanNames = [
+    "JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI",
+    "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER",
+  ];
+  const bulanName = bulanNames[bulan - 1] || "UNKNOWN";
+
+  // Sort data by tanggal
+  const sorted = [...data].sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+
+  // Build worksheet as array of arrays (aoa)
+  const rows: (string | number | null)[][] = [];
+
+  // Row 0: Title (merged A1:I1)
+  rows.push(["PERINTAH LEMBUR CABANG KEPANJEN", null, null, null, null, null, null, null, null]);
+  // Row 1: Month (merged A2:I2)
+  rows.push([`BULAN : ${bulanName} ${tahun}`, null, null, null, null, null, null, null, null]);
+  // Row 2: Intro text (merged A3:I3)
+  rows.push(["Adapun pegawai yang mengikuti kerja lembur sebagai berikut: ", null, null, null, null, null, null, null, null]);
+
+  // Row 3: Header row 1 (merged cells for WAKTU)
+  rows.push(["NO", "NIP", "NAMA", "JABATAN", "TANGGAL", "WAKTU", null, "KETERANGAN", "ESTIMASI BIAYA"]);
+  // Row 4: Header row 2 (sub-headers for WAKTU)
+  rows.push([null, null, null, null, null, "MULAI", "SELESAI", null, null]);
+
+  // Data rows starting at row 5
+  sorted.forEach((item, idx) => {
+    // Format tanggal from YYYY-MM-DD to DD/MM/YYYY
+    let tanggalFormatted = item.tanggal;
+    if (item.tanggal && item.tanggal.includes("-")) {
+      const parts = item.tanggal.split("-");
+      tanggalFormatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+    // Format time - strip seconds if present (HH:MM:SS -> HH:MM)
+    const formatTime = (t: string) => {
+      if (!t) return "";
+      const parts = t.split(":");
+      return `${parts[0]}:${parts[1]}`;
+    };
+
+    rows.push([
+      String(idx + 1),
+      item.nip,
+      item.nama || "",
+      item.jabatan || "",
+      tanggalFormatted,
+      formatTime(item.waktu_mulai),
+      formatTime(item.waktu_selesai),
+      item.keterangan || "",
+      item.estimasi_biaya,
+    ]);
+  });
+
+  // Empty row after data
+  rows.push([null, null, null, null, null, null, null, null, null]);
+
+  // Footer: company info (merged A:I)
+  const footerRow1Idx = rows.length;
+  rows.push(["PT. BANK PEMBANGUNAN DAERAH JAWA TIMUR, Tbk", null, null, null, null, null, null, null, null]);
+  const footerRow2Idx = rows.length;
+  rows.push(["CABANG KEPANJEN", null, null, null, null, null, null, null, null]);
+
+  // 4 empty rows for signature spacing matching reference excel
+  rows.push([null, null, null, null, null, null, null, null, null]);
+  rows.push([null, null, null, null, null, null, null, null, null]);
+  rows.push([null, null, null, null, null, null, null, null, null]);
+  rows.push([null, null, null, null, null, null, null, null, null]);
+
+  // Signature rows matching reference excel
+  const sigRow1Idx = rows.length;
+  rows.push([null, options.pemimpinCabang || "SATRIA DANANJAYA", null, null, null, null, options.penyelia || "FRISYANTI PRAJAYUDHA", null, null]);
+  const sigRow2Idx = rows.length;
+  rows.push([null, "Pemimpin Cabang", null, null, null, null, "Penyelia Umum & Akt", null, null]);
+
+  // Create worksheet
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+
+  // Define merges matching the reference format
+  const merges: XLSX.Range[] = [
+    // Title row (A1:I1)
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } },
+    // Month row (A2:I2)
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 8 } },
+    // Header NO (A4:A5)
+    { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } },
+    // Header NIP (B4:B5)
+    { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } },
+    // Header NAMA (C4:C5)
+    { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } },
+    // Header JABATAN (D4:D5)
+    { s: { r: 3, c: 3 }, e: { r: 4, c: 3 } },
+    // Header TANGGAL (E4:E5)
+    { s: { r: 3, c: 4 }, e: { r: 4, c: 4 } },
+    // Header WAKTU (F4:G4)
+    { s: { r: 3, c: 5 }, e: { r: 3, c: 6 } },
+    // Header KETERANGAN (H4:H5)
+    { s: { r: 3, c: 7 }, e: { r: 4, c: 7 } },
+    // Header ESTIMASI BIAYA (I4:I5)
+    { s: { r: 3, c: 8 }, e: { r: 4, c: 8 } },
+    // Footer company rows (merged across)
+    { s: { r: footerRow1Idx, c: 0 }, e: { r: footerRow1Idx, c: 8 } },
+    { s: { r: footerRow2Idx, c: 0 }, e: { r: footerRow2Idx, c: 8 } },
+    // Signature merges (Col B to F, and Col G to I)
+    { s: { r: sigRow1Idx, c: 1 }, e: { r: sigRow1Idx, c: 5 } },
+    { s: { r: sigRow2Idx, c: 1 }, e: { r: sigRow2Idx, c: 5 } },
+    { s: { r: sigRow1Idx, c: 6 }, e: { r: sigRow1Idx, c: 8 } },
+    { s: { r: sigRow2Idx, c: 6 }, e: { r: sigRow2Idx, c: 8 } },
+  ];
+  ws["!merges"] = merges;
+
+  // Column widths
+  ws["!cols"] = [
+    { wch: 5 },   // NO
+    { wch: 14 },  // NIP
+    { wch: 32 },  // NAMA
+    { wch: 18 },  // JABATAN
+    { wch: 14 },  // TANGGAL
+    { wch: 10 },  // MULAI
+    { wch: 10 },  // SELESAI
+    { wch: 50 },  // KETERANGAN
+    { wch: 18 },  // ESTIMASI BIAYA
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Lembar1");
+
+  const filename = `Lembur_${bulanName}_${tahun}.xlsx`;
+  XLSX.writeFile(wb, filename);
+}

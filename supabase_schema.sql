@@ -515,6 +515,62 @@ as $$
   returning *;
 $$;
 
+-- ---------------------------------------------------------------------
+-- 13. LEMBUR (Overtime Tracking)
+-- ---------------------------------------------------------------------
+
+create table public.lembur (
+  id              uuid primary key default gen_random_uuid(),
+  nip             text not null references public.data_pegawai(nip)
+                  on update cascade on delete restrict,
+  tanggal         date not null,
+  waktu_mulai     time not null,
+  waktu_selesai   time not null,
+  keterangan      text,
+  estimasi_biaya  numeric(15,2),
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+comment on table public.lembur is 'Catatan lembur pegawai, terintegrasi dengan data_pegawai.';
+
+create index idx_lembur_nip on public.lembur (nip);
+create index idx_lembur_tanggal on public.lembur (tanggal);
+
+-- Trigger updated_at
+create trigger trg_set_updated_at
+  before update on public.lembur
+  for each row execute function public.set_updated_at();
+
+-- RLS
+alter table public.lembur enable row level security;
+
+drop policy if exists lembur_full_access on public.lembur;
+drop policy if exists lembur_authenticated_full_access on public.lembur;
+
+create policy lembur_authenticated_full_access on public.lembur
+  for all to authenticated
+  using (true) with check (true);
+
+-- View: lembur dengan data pegawai (nama & jabatan)
+create or replace view public.v_lembur_detail as
+select
+  l.id,
+  l.nip,
+  dp.nama,
+  dp.jabatan,
+  l.tanggal,
+  l.waktu_mulai,
+  l.waktu_selesai,
+  l.keterangan,
+  l.estimasi_biaya,
+  l.created_at,
+  l.updated_at
+from public.lembur l
+left join public.data_pegawai dp on dp.nip = l.nip;
+
+comment on view public.v_lembur_detail is
+  'Gabungan data lembur dengan nama & jabatan pegawai dari data_pegawai.';
+
 -- =====================================================================
 -- SELESAI
 -- =====================================================================

@@ -53,3 +53,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+index.ts
+index (1).ts
+index (2).ts
+Lemburan.xlsx
+supabase_schema.sql
+PROMPT_AWAL_CLAUDE_CODE.md

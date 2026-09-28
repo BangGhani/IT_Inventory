@@ -159,6 +159,23 @@ export interface Audit {
   updated_at: string;
 }
 
+export interface Lembur {
+  id: string;
+  nip: string;
+  tanggal: string;
+  waktu_mulai: string;
+  waktu_selesai: string;
+  keterangan: string | null;
+  estimasi_biaya: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LemburDetail extends Lembur {
+  nama: string | null;
+  jabatan: string | null;
+}
+
 export interface DashboardSummary {
   total_pc: number;
   pc_perlu_peremajaan: number;
@@ -196,6 +213,7 @@ export interface TableMap {
   forticlient: FortiClient;
   todo_list: TodoList;
   audit: Audit;
+  lembur: Lembur;
 }
 
 export type TableName = keyof TableMap;

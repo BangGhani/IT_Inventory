@@ -55,10 +55,10 @@ export function MobileNav() {
               <Menu className="w-5 h-5" />
               <span className="text-[10px] font-medium">More</span>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[280px] p-0">
+            <SheetContent side="left" className="w-[280px] p-0 flex flex-col h-full max-h-screen">
               <SheetTitle className="sr-only">Menu Navigasi</SheetTitle>
               {/* Sheet header */}
-              <div className="flex items-center gap-3 px-5 h-16 border-b border-border">
+              <div className="flex items-center gap-3 px-5 h-16 shrink-0 border-b border-border">
                 <div className="flex items-center justify-center w-9 h-9 shrink-0">
                   <Image
                     src="/app-logo.png"
@@ -77,38 +77,40 @@ export function MobileNav() {
                 </div>
               </div>
 
-              {/* All nav items */}
-              <nav className="flex flex-col gap-1 p-3">
-                {navItems.map((item) => {
-                  const isActive =
-                    pathname === item.href ||
-                    (item.href !== "/" && pathname.startsWith(item.href));
+              {/* All nav items (scrollable) */}
+              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/50">
+                <nav className="flex flex-col gap-1">
+                  {navItems.map((item) => {
+                    const isActive =
+                      pathname === item.href ||
+                      (item.href !== "/" && pathname.startsWith(item.href));
 
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setOpen(false)}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium",
-                        "transition-colors duration-150",
-                        "hover:bg-accent hover:text-accent-foreground",
-                        isActive
-                          ? "bg-accent text-accent-foreground"
-                          : "text-foreground/70"
-                      )}
-                    >
-                      <item.icon
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setOpen(false)}
                         className={cn(
-                          "w-[18px] h-[18px] shrink-0",
-                          isActive && "text-primary"
+                          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium",
+                          "transition-colors duration-150",
+                          "hover:bg-accent hover:text-accent-foreground",
+                          isActive
+                            ? "bg-accent text-accent-foreground font-semibold"
+                            : "text-foreground/70"
                         )}
-                      />
-                      <span>{item.title}</span>
-                    </Link>
-                  );
-                })}
-              </nav>
+                      >
+                        <item.icon
+                          className={cn(
+                            "w-[18px] h-[18px] shrink-0",
+                            isActive && "text-primary"
+                          )}
+                        />
+                        <span>{item.title}</span>
+                      </Link>
+                    );
+                  })}
+                </nav>
+              </div>
             </SheetContent>
           </Sheet>
         </div>

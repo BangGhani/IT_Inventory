@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { navItems } from "@/lib/nav-items";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import Image from "next/image";
 import { ChevronLeft } from "lucide-react";
 import { useState } from "react";
@@ -16,13 +15,13 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "hidden lg:flex flex-col border-r border-sidebar-border bg-sidebar",
-        "transition-all duration-300 ease-in-out",
+        "hidden lg:flex flex-col h-full max-h-screen border-r border-sidebar-border bg-sidebar shrink-0",
+        "transition-all duration-300 ease-in-out select-none",
         collapsed ? "w-[68px]" : "w-[250px]"
       )}
     >
       {/* Logo / Brand */}
-      <div className="flex items-center gap-3 px-4 h-16 border-b border-sidebar-border">
+      <div className="flex items-center gap-3 px-4 h-16 shrink-0 border-b border-sidebar-border">
         <div className="flex items-center justify-center w-9 h-9 shrink-0">
           <Image
             src="/app-logo.png"
@@ -45,9 +44,9 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* Navigation */}
-      <ScrollArea className="flex-1 py-3">
-        <nav className="flex flex-col gap-1 px-2">
+      {/* Navigation (Smooth scrollable with min-h-0) */}
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-3 px-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/50 hover:[&::-webkit-scrollbar-thumb]:bg-border">
+        <nav className="flex flex-col gap-1">
           {navItems.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -62,7 +61,7 @@ export function Sidebar() {
                   "transition-all duration-150",
                   "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                   isActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold"
                     : "text-sidebar-foreground/70",
                   collapsed && "justify-center px-0"
                 )}
@@ -79,17 +78,18 @@ export function Sidebar() {
             );
           })}
         </nav>
-      </ScrollArea>
+      </div>
 
       {/* Collapse toggle */}
-      <div className="border-t border-sidebar-border p-2">
+      <div className="border-t border-sidebar-border p-2 shrink-0">
         <button
           onClick={() => setCollapsed(!collapsed)}
           className={cn(
             "flex items-center justify-center w-full rounded-lg py-2",
             "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-            "transition-colors duration-150"
+            "transition-colors duration-150 cursor-pointer"
           )}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           <ChevronLeft
             className={cn(

@@ -13,6 +13,7 @@ import {
   Shield,
   CheckSquare,
   ClipboardList,
+  Clock,
 } from "lucide-react";
 
 export interface NavItem {
@@ -90,6 +91,12 @@ export const navItems: NavItem[] = [
     title: "Audit",
     href: "/audit",
     icon: ClipboardList,
+    mobileVisible: true,
+  },
+  {
+    title: "Lembur",
+    href: "/lembur",
+    icon: Clock,
     mobileVisible: true,
   },
 ];

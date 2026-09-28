@@ -36,6 +36,10 @@ export default function LoginPage() {
       return;
     }
 
+    if (typeof window !== "undefined") {
+      localStorage.setItem("it_inventory_last_active", Date.now().toString());
+    }
+
     router.push("/");
     router.refresh();
   };
@@ -87,7 +91,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="nama@bankjatim.co.id"
+                placeholder="alamatemail@domain"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
