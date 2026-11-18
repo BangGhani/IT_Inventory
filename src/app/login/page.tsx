@@ -36,10 +36,6 @@ export default function LoginPage() {
       return;
     }
 
-    if (typeof window !== "undefined") {
-      localStorage.setItem("it_inventory_last_active", Date.now().toString());
-    }
-
     router.push("/");
     router.refresh();
   };

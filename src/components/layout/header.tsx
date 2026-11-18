@@ -33,6 +33,9 @@ export function Header({ onSearchOpen, expiringCount = 0, onExpiringClick }: Hea
   );
 
   const handleLogout = async () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("it_inventory_last_active");
+    }
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");

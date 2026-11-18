@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
@@ -13,8 +13,23 @@ export const metadata: Metadata = {
   description:
     "Aplikasi inventaris dan manajemen IT untuk IT Support Bank Jatim",
   icons: {
-    icon: "/app-logo.png",
+    icon: "/icon-192x192.png",
+    apple: "/icon-192x192.png",
   },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "IT Inventory",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#c4302b",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
