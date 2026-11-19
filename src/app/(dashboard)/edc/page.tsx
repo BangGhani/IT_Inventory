@@ -79,17 +79,27 @@ export default function EDCPage() {
         } else if (validNips.has(rawPic)) {
           copy.pic_nip = rawPic;
         } else {
-          // Check if employee name matches
-          const matchedByName = pegawaiMap.get(rawPic.toLowerCase());
-          if (matchedByName) {
-            copy.pic_nip = matchedByName;
+          // Check leading-zero match against validNips: e.g. "4721204" -> "04721204"
+          const cleanExtracted = extracted.replace(/^0+/, "");
+          const matchedByZero = cleanExtracted
+            ? Array.from(validNips).find((n) => n.replace(/^0+/, "") === cleanExtracted)
+            : null;
+
+          if (matchedByZero) {
+            copy.pic_nip = matchedByZero;
           } else {
-            // Not a registered employee!
-            // Move to pic_nama so we don't violate edc_pic_nip_fkey!
-            if (!copy.pic_nama) {
-              copy.pic_nama = rawPic;
+            // Check if employee name matches
+            const matchedByName = pegawaiMap.get(rawPic.toLowerCase());
+            if (matchedByName) {
+              copy.pic_nip = matchedByName;
+            } else {
+              // Not a registered employee!
+              // Move to pic_nama so we don't violate edc_pic_nip_fkey!
+              if (!copy.pic_nama) {
+                copy.pic_nama = rawPic;
+              }
+              copy.pic_nip = null;
             }
-            copy.pic_nip = null;
           }
         }
       } else {

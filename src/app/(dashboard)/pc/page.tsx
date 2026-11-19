@@ -144,11 +144,21 @@ export default function PCPage() {
         } else if (validNips.has(rawUser)) {
           copy.nip_pengguna = rawUser;
         } else {
-          const matchedByName = pegawaiMap.get(rawUser.toLowerCase());
-          if (matchedByName) {
-            copy.nip_pengguna = matchedByName;
+          // Check leading-zero match against validNips: e.g. "4721204" -> "04721204"
+          const cleanExtracted = extracted.replace(/^0+/, "");
+          const matchedByZero = cleanExtracted
+            ? Array.from(validNips).find((n) => n.replace(/^0+/, "") === cleanExtracted)
+            : null;
+
+          if (matchedByZero) {
+            copy.nip_pengguna = matchedByZero;
           } else {
-            copy.nip_pengguna = null;
+            const matchedByName = pegawaiMap.get(rawUser.toLowerCase());
+            if (matchedByName) {
+              copy.nip_pengguna = matchedByName;
+            } else {
+              copy.nip_pengguna = null;
+            }
           }
         }
       } else {

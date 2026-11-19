@@ -85,6 +85,20 @@ export default function PegawaiPage() {
     }
   };
 
+  const handleImport = async (records: Record<string, unknown>[]) => {
+    const cleaned = records.map((row) => {
+      const copy = { ...row };
+      if (copy.nip != null) {
+        copy.nip = String(copy.nip).trim();
+      }
+      Object.keys(copy).forEach((k) => {
+        if (copy[k] === "") copy[k] = null;
+      });
+      return copy;
+    });
+    return await bulkInsert(cleaned);
+  };
+
   return (
     <div className="p-4 lg:p-6 space-y-4">
       <div>
@@ -103,7 +117,7 @@ export default function PegawaiPage() {
         exportFilename="Data_Pegawai"
         exportSheetName="Pegawai"
         fields={fields}
-        onImport={bulkInsert}
+        onImport={handleImport}
       />
 
       <FormDialog

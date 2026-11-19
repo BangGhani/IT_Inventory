@@ -66,8 +66,18 @@ export default function UserEstimPage() {
         } else if (validNips.has(rawUser)) {
           copy.nip_pemegang = rawUser;
         } else {
-          const matchedByName = pegawaiMap.get(rawUser.toLowerCase());
-          copy.nip_pemegang = matchedByName || null;
+          // Check leading-zero match against validNips: e.g. "4721204" -> "04721204"
+          const cleanExtracted = extracted.replace(/^0+/, "");
+          const matchedByZero = cleanExtracted
+            ? Array.from(validNips).find((n) => n.replace(/^0+/, "") === cleanExtracted)
+            : null;
+
+          if (matchedByZero) {
+            copy.nip_pemegang = matchedByZero;
+          } else {
+            const matchedByName = pegawaiMap.get(rawUser.toLowerCase());
+            copy.nip_pemegang = matchedByName || null;
+          }
         }
       } else {
         copy.nip_pemegang = null;

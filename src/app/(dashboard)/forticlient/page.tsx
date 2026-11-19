@@ -84,8 +84,18 @@ export default function FortiClientPage() {
         } else if (validNips.has(rawUser)) {
           copy.pemegang_nip = rawUser;
         } else {
-          const matchedByName = pegawaiMap.get(rawUser.toLowerCase());
-          copy.pemegang_nip = matchedByName || null;
+          // Check leading-zero match against validNips: e.g. "4721204" -> "04721204"
+          const cleanExtracted = extracted.replace(/^0+/, "");
+          const matchedByZero = cleanExtracted
+            ? Array.from(validNips).find((n) => n.replace(/^0+/, "") === cleanExtracted)
+            : null;
+
+          if (matchedByZero) {
+            copy.pemegang_nip = matchedByZero;
+          } else {
+            const matchedByName = pegawaiMap.get(rawUser.toLowerCase());
+            copy.pemegang_nip = matchedByName || null;
+          }
         }
       } else {
         copy.pemegang_nip = null;

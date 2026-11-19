@@ -130,8 +130,23 @@ function LemburFormDialog({
 
         if (error) throw error;
 
-        if (data) {
-          setPegawaiInfo({ nama: data.nama, jabatan: data.jabatan || "-" });
+        let emp = data;
+        if (!emp) {
+          const clean = nip.trim().replace(/^0+/, "");
+          if (clean) {
+            const { data: list } = await supabase
+              .from("data_pegawai")
+              .select("nip, nama, jabatan");
+            const found = (list || []).find((p) => p.nip.replace(/^0+/, "") === clean);
+            if (found) {
+              emp = found;
+              setFormData((prev) => ({ ...prev, nip: found.nip }));
+            }
+          }
+        }
+
+        if (emp) {
+          setPegawaiInfo({ nama: emp.nama, jabatan: emp.jabatan || "-" });
           setNipError(null);
         } else {
           setPegawaiInfo(null);

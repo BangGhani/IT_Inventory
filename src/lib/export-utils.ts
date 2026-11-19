@@ -168,9 +168,10 @@ export async function parseImportFile(
   }
 
   const worksheet = workbook.Sheets[firstSheetName];
-  // Convert sheet to array of raw objects
+  // Convert sheet to array of objects. Use raw: false so formatted text (like leading zeros) is preserved
   const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, {
     defval: "",
+    raw: false,
   });
 
   if (rawRows.length === 0) {
@@ -245,9 +246,21 @@ export async function parseImportFile(
 
           if (matchedField.options && matchedField.options.length > 0) {
             // 1. Direct match on value (case-insensitive, e.g. "pinpad" -> "Pinpad")
-            const valMatch = matchedField.options.find(
+            let valMatch = matchedField.options.find(
               (o) => o.value.toLowerCase() === strValLower
             );
+
+            // 1b. Smart leading-zero match for NIP fields (e.g. "4721204" matches "04721204")
+            const isNipField = matchedField.key === "pic_nip" || matchedField.key.endsWith("_nip") || matchedField.key.startsWith("nip");
+            if (!valMatch && isNipField) {
+              const cleanVal = strVal.replace(/^0+/, "");
+              if (cleanVal) {
+                valMatch = matchedField.options.find(
+                  (o) => o.value.replace(/^0+/, "") === cleanVal
+                );
+              }
+            }
+
             if (valMatch) {
               parsedVal = valMatch.value;
             } else {
@@ -261,13 +274,23 @@ export async function parseImportFile(
                 // 3. Extract inside parentheses: e.g. "Budi (12345)" -> "12345"
                 const parenMatch = strVal.match(/\(([^)]+)\)/);
                 const extracted = parenMatch ? parenMatch[1].trim() : null;
-                const parenValMatch = extracted
+                let parenValMatch = extracted
                   ? matchedField.options.find(
                       (o) =>
                         o.value.toLowerCase() === extracted.toLowerCase() ||
                         o.label.toLowerCase() === extracted.toLowerCase()
                     )
                   : null;
+
+                // 3b. Smart leading-zero match inside parentheses
+                if (!parenValMatch && extracted && isNipField) {
+                  const cleanExtracted = extracted.replace(/^0+/, "");
+                  if (cleanExtracted) {
+                    parenValMatch = matchedField.options.find(
+                      (o) => o.value.replace(/^0+/, "") === cleanExtracted
+                    );
+                  }
+                }
                 if (parenValMatch) {
                   parsedVal = parenValMatch.value;
                 } else {
@@ -379,6 +402,24 @@ export function downloadTemplate(options: {
     header: Object.keys(headerRow),
   });
   worksheet["!cols"] = autoFitColumns([sampleRow]);
+
+  // Ensure text/ID columns (NIP, MID, TID, SN, etc.) are typed as string with text format "@" so Excel doesn't strip leading zeros
+  if (worksheet["!ref"]) {
+    const range = XLSX.utils.decode_range(worksheet["!ref"]);
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+      const colField = fields[C];
+      if (colField && colField.type !== "number" && colField.type !== "boolean") {
+        for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = worksheet[cellAddress];
+          if (cell) {
+            cell.t = "s";
+            cell.z = "@";
+          }
+        }
+      }
+    }
+  }
 
   if (format === "xlsx") {
     const workbook = XLSX.utils.book_new();
