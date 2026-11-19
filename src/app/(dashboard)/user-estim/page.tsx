@@ -47,6 +47,42 @@ export default function UserEstimPage() {
   const handleSubmit = async (v: Record<string, unknown>) => { if (editData) { await update({ id: editData.username, payload: v }); } else { await insert(v); } setFormOpen(false); setEditData(null); };
   const handleDelete = async () => { if (deleteData) { await remove(deleteData.username); setDeleteData(null); } };
 
+  const handleImport = async (records: Record<string, unknown>[]) => {
+    const supabase = createClient();
+    const { data: pegawaiData } = await supabase.from("data_pegawai").select("nip, nama");
+    const validNips = new Set((pegawaiData || []).map((p) => String(p.nip).trim()));
+    const pegawaiMap = new Map((pegawaiData || []).map((p) => [String(p.nama).toLowerCase().trim(), String(p.nip).trim()]));
+
+    const cleaned = records.map((row) => {
+      const copy = { ...row };
+      const rawUser = copy.nip_pemegang != null ? String(copy.nip_pemegang).trim() : null;
+
+      if (rawUser && rawUser !== "" && !rawUser.toLowerCase().startsWith("contoh")) {
+        const paren = rawUser.match(/\(([^)]+)\)/);
+        const extracted = paren ? paren[1].trim() : rawUser;
+
+        if (validNips.has(extracted)) {
+          copy.nip_pemegang = extracted;
+        } else if (validNips.has(rawUser)) {
+          copy.nip_pemegang = rawUser;
+        } else {
+          const matchedByName = pegawaiMap.get(rawUser.toLowerCase());
+          copy.nip_pemegang = matchedByName || null;
+        }
+      } else {
+        copy.nip_pemegang = null;
+      }
+
+      Object.keys(copy).forEach((k) => {
+        if (copy[k] === "") copy[k] = null;
+      });
+
+      return copy;
+    });
+
+    return await bulkInsert(cleaned);
+  };
+
   return (
     <div className="p-4 lg:p-6 space-y-4">
       <div><h1 className="text-2xl font-bold tracking-tight">User Estim</h1><p className="text-sm text-muted-foreground">Data akun Estim</p></div>
@@ -61,7 +97,7 @@ export default function UserEstimPage() {
         exportFilename="Data_User_Estim"
         exportSheetName="User Estim"
         fields={fields}
-        onImport={bulkInsert}
+        onImport={handleImport}
       />
       <FormDialog open={formOpen} onOpenChange={(o) => { setFormOpen(o); if (!o) setEditData(null); }} title={editData ? "Edit User Estim" : "Tambah User Estim"} fields={editData ? fields.map((f) => f.key === "username" ? { ...f, disabled: true } : f) : fields} initialData={editData ?? undefined} onSubmit={handleSubmit} loading={isInserting || isUpdating} />
       <DeleteDialog open={!!deleteData} onOpenChange={(o) => { if (!o) setDeleteData(null); }} title="Hapus User Estim" description={`Hapus user "${deleteData?.username}"?`} onConfirm={handleDelete} loading={isDeleting} />

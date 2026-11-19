@@ -34,7 +34,7 @@ export default function EDCPage() {
     { key: "tipe", label: "Tipe", type: "select", options: [{ label: "Pinpad", value: "Pinpad" }, { label: "Android", value: "Android" }] },
     { key: "lokasi", label: "Lokasi", type: "text", placeholder: "Lokasi EDC" },
     { key: "peruntukan", label: "Peruntukan", type: "select", options: [{ label: "Bank Jatim", value: "Bank Jatim" }, { label: "Merchant", value: "Merchant" }] },
-    { key: "pic_nip", label: "PIC (Pegawai)", type: "select", options: pegawaiList.map((p) => ({ label: `${p.nama} (${p.nip})`, value: p.nip })) },
+    { key: "pic_nip", label: "PIC (Pegawai)", type: "select", placeholder: "NIP Pegawai (opsional)", options: pegawaiList.map((p) => ({ label: `${p.nama} (${p.nip})`, value: p.nip })) },
     { key: "pic_nama", label: "PIC Nama (jika bukan pegawai)", type: "text", placeholder: "Nama PIC external" },
     { key: "keterangan", label: "Keterangan", type: "textarea" },
   ];
@@ -59,6 +59,54 @@ export default function EDCPage() {
   const handleSubmit = async (v: Record<string, unknown>) => { if (editData) { await update({ id: editData.id, payload: v }); } else { await insert(v); } setFormOpen(false); setEditData(null); };
   const handleDelete = async () => { if (deleteData) { await remove(deleteData.id); setDeleteData(null); } };
 
+  const handleImport = async (records: Record<string, unknown>[]) => {
+    const supabase = createClient();
+    const { data: pegawaiData } = await supabase.from("data_pegawai").select("nip, nama");
+    const validNips = new Set((pegawaiData || []).map((p) => String(p.nip).trim()));
+    const pegawaiMap = new Map((pegawaiData || []).map((p) => [String(p.nama).toLowerCase().trim(), String(p.nip).trim()]));
+
+    const cleaned = records.map((row) => {
+      const copy = { ...row };
+      const rawPic = copy.pic_nip != null ? String(copy.pic_nip).trim() : null;
+
+      if (rawPic && rawPic !== "" && !rawPic.toLowerCase().startsWith("contoh")) {
+        // Check if rawPic has NIP in parentheses: e.g. "Budi (12345)"
+        const paren = rawPic.match(/\(([^)]+)\)/);
+        const extracted = paren ? paren[1].trim() : rawPic;
+
+        if (validNips.has(extracted)) {
+          copy.pic_nip = extracted;
+        } else if (validNips.has(rawPic)) {
+          copy.pic_nip = rawPic;
+        } else {
+          // Check if employee name matches
+          const matchedByName = pegawaiMap.get(rawPic.toLowerCase());
+          if (matchedByName) {
+            copy.pic_nip = matchedByName;
+          } else {
+            // Not a registered employee!
+            // Move to pic_nama so we don't violate edc_pic_nip_fkey!
+            if (!copy.pic_nama) {
+              copy.pic_nama = rawPic;
+            }
+            copy.pic_nip = null;
+          }
+        }
+      } else {
+        copy.pic_nip = null;
+      }
+
+      // Ensure empty strings are null
+      Object.keys(copy).forEach((k) => {
+        if (copy[k] === "") copy[k] = null;
+      });
+
+      return copy;
+    });
+
+    return await bulkInsert(cleaned);
+  };
+
   return (
     <div className="p-4 lg:p-6 space-y-4">
       <div><h1 className="text-2xl font-bold tracking-tight">EDC</h1><p className="text-sm text-muted-foreground">Inventaris mesin EDC</p></div>
@@ -73,7 +121,7 @@ export default function EDCPage() {
         exportFilename="Data_EDC"
         exportSheetName="EDC"
         fields={fields}
-        onImport={bulkInsert}
+        onImport={handleImport}
       />
       <FormDialog open={formOpen} onOpenChange={(o) => { setFormOpen(o); if (!o) setEditData(null); }} title={editData ? "Edit EDC" : "Tambah EDC"} fields={fields} initialData={editData ?? undefined} onSubmit={handleSubmit} loading={isInserting || isUpdating} />
       <DeleteDialog open={!!deleteData} onOpenChange={(o) => { if (!o) setDeleteData(null); }} title="Hapus EDC" description={`Hapus EDC MID "${deleteData?.mid}"?`} onConfirm={handleDelete} loading={isDeleting} />

@@ -16,9 +16,21 @@ function formatDbError(error: unknown): Error {
   } else if (errObj.code === "22P02" && (msg.includes("inet") || msg.toLowerCase().includes("ip"))) {
     msg = "Format IP Address tidak valid (contoh: 192.168.1.100)";
   } else if (errObj.code === "23505") {
-    msg = "Data dengan nilai tersebut sudah ada di sistem (duplikat)";
+    if (msg.includes("edc_mid_tid_key")) {
+      msg = "Kombinasi MID dan TID EDC sudah terdaftar di database (duplikat).";
+    } else {
+      msg = "Data dengan nilai tersebut sudah ada di sistem (duplikat).";
+    }
   } else if (errObj.code === "23503") {
-    msg = "Data relasi tidak ditemukan di database";
+    if (msg.includes("edc_pic_nip_fkey") || msg.includes("pic_nip")) {
+      msg = "NIP Pegawai pada kolom PIC tidak ditemukan di master Data Pegawai. Pastikan pegawai sudah terdaftar di menu Pegawai atau kosongkan jika bukan pegawai.";
+    } else if (msg.includes("nip_pengguna")) {
+      msg = "NIP Pengguna tidak ditemukan di Data Pegawai. Pastikan pegawai sudah terdaftar.";
+    } else if (msg.includes("nip_pemegang") || msg.includes("pemegang_nip")) {
+      msg = "NIP Pemegang tidak ditemukan di Data Pegawai. Pastikan pegawai sudah terdaftar.";
+    } else {
+      msg = "Data relasi (NIP/ID) tidak ditemukan di database. Pastikan data master sudah terdaftar.";
+    }
   }
 
   const result = new Error(msg);

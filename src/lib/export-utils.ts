@@ -209,7 +209,9 @@ export async function parseImportFile(
 
         if (typeof rawVal === "string") {
           const trimmed = rawVal.trim();
-          if (trimmed === "") {
+          const lower = trimmed.toLowerCase();
+          const emptyPlaceholders = ["", "-", "--", "n/a", "na", "null", "none", "tidak ada", "kosong", "belum ada"];
+          if (emptyPlaceholders.includes(lower) || lower.startsWith("contoh ") || lower.startsWith("sample ")) {
             parsedVal = null;
           } else {
             parsedVal = trimmed;
@@ -236,6 +238,72 @@ export async function parseImportFile(
             parsedVal = ["ya", "yes", "true", "1", "ok", "perlu"].includes(strVal);
           } else {
             parsedVal = false;
+          }
+        } else if (matchedField.type === "select" && parsedVal !== null) {
+          const strVal = String(parsedVal).trim();
+          const strValLower = strVal.toLowerCase();
+
+          if (matchedField.options && matchedField.options.length > 0) {
+            // 1. Direct match on value (case-insensitive, e.g. "pinpad" -> "Pinpad")
+            const valMatch = matchedField.options.find(
+              (o) => o.value.toLowerCase() === strValLower
+            );
+            if (valMatch) {
+              parsedVal = valMatch.value;
+            } else {
+              // 2. Direct match on label (e.g. "Budi Santoso (12345)" or "Bank Jatim")
+              const labelMatch = matchedField.options.find(
+                (o) => o.label.toLowerCase() === strValLower
+              );
+              if (labelMatch) {
+                parsedVal = labelMatch.value;
+              } else {
+                // 3. Extract inside parentheses: e.g. "Budi (12345)" -> "12345"
+                const parenMatch = strVal.match(/\(([^)]+)\)/);
+                const extracted = parenMatch ? parenMatch[1].trim() : null;
+                const parenValMatch = extracted
+                  ? matchedField.options.find(
+                      (o) =>
+                        o.value.toLowerCase() === extracted.toLowerCase() ||
+                        o.label.toLowerCase() === extracted.toLowerCase()
+                    )
+                  : null;
+                if (parenValMatch) {
+                  parsedVal = parenValMatch.value;
+                } else {
+                  // 4. Fuzzy match: label contains the value or vice-versa
+                  const fuzzyMatch = matchedField.options.find(
+                    (o) =>
+                      o.label.toLowerCase().includes(strValLower) ||
+                      strValLower.includes(o.label.toLowerCase())
+                  );
+                  if (fuzzyMatch) {
+                    parsedVal = fuzzyMatch.value;
+                  } else if (matchedField.key === "pic_nip" || matchedField.key.endsWith("_nip")) {
+                    // Foreign key that does not match any registered pegawai!
+                    // If table has pic_nama (like EDC), move it to pic_nama so the external PIC name isn't lost
+                    if (!mappedRow["pic_nama"] && strVal && !strValLower.startsWith("contoh")) {
+                      mappedRow["pic_nama"] = strVal;
+                    }
+                    parsedVal = null;
+                  } else if (!matchedField.required) {
+                    parsedVal = null;
+                  } else {
+                    rowErrors.push(
+                      `Nilai "${strVal}" pada kolom ${matchedField.label} tidak valid. Pilihan yang tersedia: ${matchedField.options.map((o) => o.label).join(", ")}`
+                    );
+                  }
+                }
+              }
+            }
+          } else {
+            // Options empty or not loaded yet
+            if (matchedField.key === "pic_nip" || matchedField.key.endsWith("_nip")) {
+              if (!mappedRow["pic_nama"] && strVal && !strValLower.startsWith("contoh")) {
+                mappedRow["pic_nama"] = strVal;
+              }
+              parsedVal = null;
+            }
           }
         }
 
@@ -294,7 +362,14 @@ export function downloadTemplate(options: {
     } else if (f.type === "date") {
       sampleRow[colName] = "2026-01-15";
     } else if (f.type === "select" && f.options && f.options.length > 0) {
-      sampleRow[colName] = f.options[0].label;
+      if (f.key.endsWith("_nip") || f.key === "pic_nip" || f.key === "nip_pengguna" || f.key === "nip_pemegang") {
+        sampleRow[colName] = f.options[0].value;
+      } else {
+        sampleRow[colName] = f.options[0].value || f.options[0].label;
+      }
+    } else if (f.key.endsWith("_nip") || f.key === "pic_nip" || f.key === "nip_pengguna" || f.key === "nip_pemegang") {
+      // Leave empty for foreign key fields when no pegawai exists yet to avoid FK violations
+      sampleRow[colName] = "";
     } else {
       sampleRow[colName] = f.placeholder || `Contoh ${f.label}`;
     }

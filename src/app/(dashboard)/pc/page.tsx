@@ -125,6 +125,46 @@ export default function PCPage() {
     }
   };
 
+  const handleImport = async (records: Record<string, unknown>[]) => {
+    const supabase = createClient();
+    const { data: pegawaiData } = await supabase.from("data_pegawai").select("nip, nama");
+    const validNips = new Set((pegawaiData || []).map((p) => String(p.nip).trim()));
+    const pegawaiMap = new Map((pegawaiData || []).map((p) => [String(p.nama).toLowerCase().trim(), String(p.nip).trim()]));
+
+    const cleaned = records.map((row) => {
+      const copy = { ...row };
+      const rawUser = copy.nip_pengguna != null ? String(copy.nip_pengguna).trim() : null;
+
+      if (rawUser && rawUser !== "" && !rawUser.toLowerCase().startsWith("contoh")) {
+        const paren = rawUser.match(/\(([^)]+)\)/);
+        const extracted = paren ? paren[1].trim() : rawUser;
+
+        if (validNips.has(extracted)) {
+          copy.nip_pengguna = extracted;
+        } else if (validNips.has(rawUser)) {
+          copy.nip_pengguna = rawUser;
+        } else {
+          const matchedByName = pegawaiMap.get(rawUser.toLowerCase());
+          if (matchedByName) {
+            copy.nip_pengguna = matchedByName;
+          } else {
+            copy.nip_pengguna = null;
+          }
+        }
+      } else {
+        copy.nip_pengguna = null;
+      }
+
+      Object.keys(copy).forEach((k) => {
+        if (copy[k] === "") copy[k] = null;
+      });
+
+      return copy;
+    });
+
+    return await bulkInsert(cleaned);
+  };
+
   return (
     <div className="p-4 lg:p-6 space-y-4">
       <div>
@@ -143,7 +183,7 @@ export default function PCPage() {
         exportFilename="Data_PC_Komputer"
         exportSheetName="PC Komputer"
         fields={fields}
-        onImport={bulkInsert}
+        onImport={handleImport}
       />
 
       <FormDialog
